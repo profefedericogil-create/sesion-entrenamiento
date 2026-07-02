@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sesiones de Entrenamiento</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+:root {
+  --bg: #0f0f0f; --surface: #1a1a1a; --border: #2a2a2a;
+  --accent: #c8f04a; --accent-dim: rgba(200,240,74,0.10);
+  --text: #f0f0f0; --text-muted: #777;
+  --danger: #ff6b6b; --warn: #fbbf24; --radius: 14px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; padding-bottom: 80px; }
+.header { padding: 24px 20px 16px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 10; }
+.header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.brand { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; }
+.step-indicator { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); }
+.header h1 { font-size: 20px; font-weight: 600; }
+.progress-bar { height: 3px; background: var(--border); margin-top: 14px; border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.4s ease; }
+.step { display: none; padding: 24px 20px 0; }
+.step.active { display: block; }
+.step-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+.step-title { font-size: 20px; font-weight: 600; margin-bottom: 4px; line-height: 1.3; }
+.step-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.5; }
+.field-group { margin-bottom: 18px; }
+.field-label { font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 7px; display: block; }
+input[type="text"], input[type="date"], textarea {
+  width: 100%; background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius);
+  color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; padding: 13px 15px;
+  outline: none; transition: border-color 0.18s; -webkit-appearance: none;
+}
+input:focus, textarea:focus { border-color: var(--accent); }
+textarea { resize: none; min-height: 90px; line-height: 1.6; }
+.energy-scale { display: flex; gap: 8px; margin-bottom: 20px; }
+.energy-btn { flex: 1; padding: 12px 6px; border-radius: var(--radius); border: 2px solid var(--border); background: var(--surface); cursor: pointer; text-align: center; transition: all 0.15s; }
+.energy-btn.selected { border-color: var(--accent); background: var(--accent-dim); }
+.energy-emoji { font-size: 22px; display: block; margin-bottom: 4px; }
+.energy-label { font-size: 10px; color: var(--text-muted); font-family: 'DM Mono', monospace; }
+.toggle-row { display: flex; gap: 10px; margin-bottom: 14px; }
+.toggle-btn { flex: 1; padding: 13px; border-radius: var(--radius); border: 2px solid var(--border); background: var(--surface); cursor: pointer; font-size: 14px; font-weight: 500; text-align: center; transition: all 0.15s; }
+.toggle-btn.selected-yes { border-color: var(--danger); background: rgba(255,107,107,0.10); }
+.toggle-btn.selected-no { border-color: var(--accent); background: var(--accent-dim); }
+.dolor-input { display: none; margin-top: 10px; }
+.dolor-input.visible { display: block; }
+.rutina-header { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+.rutina-2adge { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; }
+.rutina-skip { font-size: 12px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.rutina-skip input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; padding: 0; accent-color: var(--accent); }
+.ejercicio-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.ejercicio-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 15px; }
+.ejercicio-nombre-input { background: transparent; border: none; border-bottom: 1px solid var(--border); border-radius: 0; padding: 0 0 8px; font-size: 14px; font-weight: 600; color: var(--accent); width: 100%; margin-bottom: 12px; }
+.ejercicio-fields { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.mini-field label { font-size: 10px; color: var(--text-muted); font-family: 'DM Mono', monospace; letter-spacing: 1px; display: block; margin-bottom: 4px; }
+.mini-field input { padding: 9px 10px; font-size: 14px; text-align: center; border-radius: 8px; }
+.mod-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.mod-check { width: 16px; height: 16px; accent-color: var(--warn); cursor: pointer; flex-shrink: 0; }
+.mod-label { font-size: 12px; color: var(--text-muted); cursor: pointer; }
+.mod-nota { display: none; margin-top: 8px; }
+.mod-nota.visible { display: block; }
+.mod-nota input { font-size: 13px; padding: 10px 12px; border-color: var(--warn); }
+.add-ejercicio { width: 100%; padding: 13px; border-radius: var(--radius); border: 2px dashed var(--border); background: transparent; color: var(--text-muted); font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; transition: all 0.15s; margin-bottom: 24px; }
+.add-ejercicio:hover { border-color: var(--accent); color: var(--accent); }
+.rutina-skipped { display: none; text-align: center; padding: 32px 20px; color: var(--text-muted); font-size: 14px; }
+.rutina-skipped.visible { display: block; }
+.nav-btns { display: flex; gap: 10px; padding: 16px 20px; position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg); border-top: 1px solid var(--border); z-index: 10; }
+.btn-back { padding: 15px 18px; border-radius: var(--radius); border: 2px solid var(--border); background: transparent; color: var(--text-muted); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; flex-shrink: 0; }
+.btn-next { flex: 1; padding: 15px; border-radius: var(--radius); border: none; background: var(--accent); color: #000; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.btn-next:active { transform: scale(0.98); }
+
+.sugerencia-profe-box {
+  background: rgba(200,240,74,0.06);
+  border: 1px solid rgba(200,240,74,0.25);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.sugerencia-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.sugerencia-texto {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  font-style: italic;
+}
+.sugerencia-vacia {
+  font-size: 12px;
+  color: var(--border);
+  font-style: italic;
+}
+.profe-sugerencia-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  transition: all 0.15s;
+}
+.profe-sugerencia-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.profe-sugerencia-input { display: none; margin-top: 8px; }
+.profe-sugerencia-input.visible { display: block; }
+.profe-pass-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.profe-pass-row input { flex: 1; padding: 10px 12px; font-size: 13px; }
+.profe-pass-row button {
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--accent);
+  color: #000;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.profe-error { color: var(--danger); font-size: 12px; margin-bottom: 8px; display: none; }
+.profe-textarea-wrap { display: none; }
+.profe-textarea-wrap.visible { display: block; }
+.profe-save-btn {
+  width: 100%;
+  padding: 11px;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--accent);
+  color: #000;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+}
+.profe-saved { color: var(--accent); font-size: 12px; text-align: center; margin-top: 6px; display: none; }
+.done-screen { display: none; padding: 48px 20px; text-align: center; }
+.done-screen.active { display: block; }
+.done-icon { font-size: 60px; margin-bottom: 20px; }
+.done-title { font-size: 24px; font-weight: 600; margin-bottom: 10px; }
+.done-sub { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 32px; }
+.done-summary { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; text-align: left; margin-bottom: 24px; }
+.summary-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; gap: 12px; }
+.summary-row:last-child { border-bottom: none; }
+.summary-key { color: var(--text-muted); flex-shrink: 0; }
+.summary-val { font-weight: 500; text-align: right; word-break: break-word; }
+.btn-nueva { width: 100%; padding: 15px; border-radius: var(--radius); border: 2px solid var(--border); background: transparent; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="form-container">
+  <div class="header">
+    <div class="header-top">
+      <span class="brand">Sesión de Entrenamiento</span>
+      <span class="step-indicator" id="step-counter">1 / 5</span>
+    </div>
+    <h1 id="header-title">Datos del día</h1>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:20%"></div></div>
+  </div>
+
+  <!-- PASO 1 -->
+  <div class="step active" id="step-1">
+    <div class="step-label">Paso 1</div>
+    <div class="step-title">Datos del día</div>
+    <div class="step-sub">Completá tus datos y cómo llegaste al entrenamiento.</div>
+    <div class="field-group">
+      <label class="field-label">👤 Alumno</label>
+      <input type="text" id="nombre-input" placeholder="Tu nombre completo" 
+        oninput="buscarAlumno(this.value)" autocomplete="off">
+      <div id="autocomplete-list" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-top:4px;overflow:hidden;"></div>
+    </div>
+    <div id="rutina-cargada-msg" style="display:none;background:rgba(200,240,74,0.08);border:1px solid rgba(200,240,74,0.2);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--accent);margin-bottom:16px">
+      ✅ Tu rutina fue cargada automáticamente
+    </div>
+    <div class="field-group">
+      <label class="field-label">📅 Fecha del entrenamiento</label>
+      <input type="date" id="fecha-input">
+    </div>
+    <div class="field-group">
+      <label class="field-label">⚡ Nivel de energía al llegar</label>
+      <div class="energy-scale">
+        <div class="energy-btn" onclick="selectEnergy(this,1)"><span class="energy-emoji">😴</span><span class="energy-label">BAJO</span></div>
+        <div class="energy-btn" onclick="selectEnergy(this,2)"><span class="energy-emoji">😐</span><span class="energy-label">MEDIO</span></div>
+        <div class="energy-btn" onclick="selectEnergy(this,3)"><span class="energy-emoji">🔥</span><span class="energy-label">ÓPTIMO</span></div>
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">😬 ¿Tuviste algún dolor o molestia?</label>
+      <div class="toggle-row">
+        <div class="toggle-btn" id="btn-dolor-si" onclick="selectDolor(true)">Sí</div>
+        <div class="toggle-btn" id="btn-dolor-no" onclick="selectDolor(false)">No</div>
+      </div>
+      <div class="dolor-input" id="dolor-detalle">
+        <input type="text" placeholder="¿Dónde? Ej: rodilla derecha, hombro..." id="dolor-texto">
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">😊 ¿Cómo fue tu ánimo?</label>
+      <div class="energy-scale">
+        <div class="energy-btn" onclick="selectAnimo(this,'bajo')"><span class="energy-emoji">😞</span><span class="energy-label">BAJO</span></div>
+        <div class="energy-btn" onclick="selectAnimo(this,'normal')"><span class="energy-emoji">😊</span><span class="energy-label">BIEN</span></div>
+        <div class="energy-btn" onclick="selectAnimo(this,'excelente')"><span class="energy-emoji">🌟</span><span class="energy-label">TOP</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 2: Rutina 1 -->
+  <div class="step" id="step-2">
+    <div class="step-label">Paso 2</div>
+    <div class="step-title">Rutina 1</div>
+    <div class="step-sub">Completá los ejercicios. Si modificaste algo, marcalo para que tu profe lo vea.</div>
+    <div class="rutina-header">
+      <span class="rutina-2adge">🏋️ Rutina 1</span>
+      <label class="rutina-skip"><input type="checkbox" id="skip-rutina-1" onchange="toggleSkip('1')"> No hice esta rutina</label>
+    </div>
+    <div id="rutina-1-content">
+    <div class="sugerencia-profe-box">
+      <div class="sugerencia-label">📋 Indicaciones del profe</div>
+      <div class="sugerencia-texto" id="sugerencia-display-1"><span class="sugerencia-vacia">Sin indicaciones cargadas aún.</span></div>
+      <div class="profe-sugerencia-toggle" onclick="toggleSugerenciaInput(1)">🔒 Soy el profe — editar indicaciones</div>
+      <div class="profe-sugerencia-input" id="sugerencia-input-1">
+        <div class="profe-pass-row">
+          <input type="password" id="sugerencia-pass-1" placeholder="Contraseña del profe">
+          <button onclick="verificarSugerencia(1)">Ingresar</button>
+        </div>
+        <div class="profe-error" id="sugerencia-error-1">Contraseña incorrecta</div>
+        <div class="profe-textarea-wrap" id="sugerencia-wrap-1">
+          <div style="margin-bottom:10px"><label style="font-size:11px;color:#777;font-family:DM Mono,monospace;letter-spacing:1px;display:block;margin-bottom:6px">👤 ASIGNAR A (nombre del alumno o grupo)</label><input type="text" id="sugerencia-alumno-1" placeholder="Ej: Juan Pérez o Grupo Lunes" style="width:100%;background:#1a1a1a;border:2px solid rgba(200,240,74,0.3);border-radius:10px;color:#f0f0f0;font-family:DM Sans,sans-serif;font-size:14px;padding:11px 14px;outline:none;"></div>
+          <textarea id="sugerencia-texto-1" style="width:100%;background:var(--surface);border:2px solid rgba(200,240,74,0.4);border-radius:var(--radius);color:var(--text);font-family:DM Sans,sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:none;min-height:80px;line-height:1.6;" placeholder="Ej: Enfocate en bajar lento en la sentadilla, controlá la respiración en cada rep..."></textarea>
+          <button class="profe-save-btn" onclick="guardarSugerencia(1)">Guardar indicación ✓</button>
+          <button class="profe-save-btn" onclick="guardarYEnviarRutina(1)" style="margin-top:6px;background:#000;border:2px solid var(--accent);color:var(--accent)">📤 Guardar y enviar rutina al alumno</button>
+          <div class="profe-saved" id="sugerencia-saved-1">✅ Indicación guardada</div>
+          <div class="profe-saved" id="rutina-enviada-1" style="color:var(--info)">✅ Rutina guardada en Sheets</div>
+          <div id="link-alumno-1" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+      <div class="ejercicio-list" id="ejercicio-list-1"></div>
+      <button class="add-ejercicio" onclick="addEjercicio('1')">+ Agregar ejercicio</button>
+    </div>
+    <div class="rutina-skipped" id="rutina-1-skipped"><div style="font-size:32px;margin-bottom:8px">⏭️</div>Esta rutina no fue realizada hoy.</div>
+  </div>
+
+  <!-- PASO 3: Rutina 2 -->
+  <div class="step" id="step-3">
+    <div class="step-label">Paso 3</div>
+    <div class="step-title">Rutina 2</div>
+    <div class="step-sub">Si no tuviste esta rutina hoy, marcala como no realizada.</div>
+    <div class="rutina-header">
+      <span class="rutina-2adge">🏋️ Rutina 2</span>
+      <label class="rutina-skip"><input type="checkbox" id="skip-rutina-2" onchange="toggleSkip('2')"> No hice esta rutina</label>
+    </div>
+    <div id="rutina-2-content">
+    <div class="sugerencia-profe-box">
+      <div class="sugerencia-label">📋 Indicaciones del profe</div>
+      <div class="sugerencia-texto" id="sugerencia-display-2"><span class="sugerencia-vacia">Sin indicaciones cargadas aún.</span></div>
+      <div class="profe-sugerencia-toggle" onclick="toggleSugerenciaInput(2)">🔒 Soy el profe — editar indicaciones</div>
+      <div class="profe-sugerencia-input" id="sugerencia-input-2">
+        <div class="profe-pass-row">
+          <input type="password" id="sugerencia-pass-2" placeholder="Contraseña del profe">
+          <button onclick="verificarSugerencia(2)">Ingresar</button>
+        </div>
+        <div class="profe-error" id="sugerencia-error-2">Contraseña incorrecta</div>
+        <div class="profe-textarea-wrap" id="sugerencia-wrap-2">
+          <div style="margin-bottom:10px"><label style="font-size:11px;color:#777;font-family:DM Mono,monospace;letter-spacing:1px;display:block;margin-bottom:6px">👤 ASIGNAR A (nombre del alumno o grupo)</label><input type="text" id="sugerencia-alumno-2" placeholder="Ej: Juan Pérez o Grupo Lunes" style="width:100%;background:#1a1a1a;border:2px solid rgba(200,240,74,0.3);border-radius:10px;color:#f0f0f0;font-family:DM Sans,sans-serif;font-size:14px;padding:11px 14px;outline:none;"></div>
+          <textarea id="sugerencia-texto-2" style="width:100%;background:var(--surface);border:2px solid rgba(200,240,74,0.4);border-radius:var(--radius);color:var(--text);font-family:DM Sans,sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:none;min-height:80px;line-height:1.6;" placeholder="Ej: Enfocate en bajar lento en la sentadilla, controlá la respiración en cada rep..."></textarea>
+          <button class="profe-save-btn" onclick="guardarSugerencia(2)">Guardar indicación ✓</button>
+          <button class="profe-save-btn" onclick="guardarYEnviarRutina(2)" style="margin-top:6px;background:#000;border:2px solid var(--accent);color:var(--accent)">📤 Guardar y enviar rutina al alumno</button>
+          <div class="profe-saved" id="sugerencia-saved-2">✅ Indicación guardada</div>
+          <div class="profe-saved" id="rutina-enviada-2" style="color:var(--info)">✅ Rutina guardada en Sheets</div>
+          <div id="link-alumno-2" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+      <div class="ejercicio-list" id="ejercicio-list-2"></div>
+      <button class="add-ejercicio" onclick="addEjercicio('2')">+ Agregar ejercicio</button>
+    </div>
+    <div class="rutina-skipped" id="rutina-2-skipped"><div style="font-size:32px;margin-bottom:8px">⏭️</div>Esta rutina no fue realizada hoy.</div>
+  </div>
+
+  <!-- PASO 4: Rutina 3 -->
+  <div class="step" id="step-4">
+    <div class="step-label">Paso 4</div>
+    <div class="step-title">Rutina 3</div>
+    <div class="step-sub">Si no tuviste esta rutina hoy, marcala como no realizada.</div>
+    <div class="rutina-header">
+      <span class="rutina-2adge">🏋️ Rutina 3</span>
+      <label class="rutina-skip"><input type="checkbox" id="skip-rutina-3" onchange="toggleSkip('3')"> No hice esta rutina</label>
+    </div>
+    <div id="rutina-3-content">
+    <div class="sugerencia-profe-box">
+      <div class="sugerencia-label">📋 Indicaciones del profe</div>
+      <div class="sugerencia-texto" id="sugerencia-display-3"><span class="sugerencia-vacia">Sin indicaciones cargadas aún.</span></div>
+      <div class="profe-sugerencia-toggle" onclick="toggleSugerenciaInput(3)">🔒 Soy el profe — editar indicaciones</div>
+      <div class="profe-sugerencia-input" id="sugerencia-input-3">
+        <div class="profe-pass-row">
+          <input type="password" id="sugerencia-pass-3" placeholder="Contraseña del profe">
+          <button onclick="verificarSugerencia(3)">Ingresar</button>
+        </div>
+        <div class="profe-error" id="sugerencia-error-3">Contraseña incorrecta</div>
+        <div class="profe-textarea-wrap" id="sugerencia-wrap-3">
+          <div style="margin-bottom:10px"><label style="font-size:11px;color:#777;font-family:DM Mono,monospace;letter-spacing:1px;display:block;margin-bottom:6px">👤 ASIGNAR A (nombre del alumno o grupo)</label><input type="text" id="sugerencia-alumno-3" placeholder="Ej: Juan Pérez o Grupo Lunes" style="width:100%;background:#1a1a1a;border:2px solid rgba(200,240,74,0.3);border-radius:10px;color:#f0f0f0;font-family:DM Sans,sans-serif;font-size:14px;padding:11px 14px;outline:none;"></div>
+          <textarea id="sugerencia-texto-3" style="width:100%;background:var(--surface);border:2px solid rgba(200,240,74,0.4);border-radius:var(--radius);color:var(--text);font-family:DM Sans,sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:none;min-height:80px;line-height:1.6;" placeholder="Ej: Enfocate en bajar lento en la sentadilla, controlá la respiración en cada rep..."></textarea>
+          <button class="profe-save-btn" onclick="guardarSugerencia(3)">Guardar indicación ✓</button>
+          <button class="profe-save-btn" onclick="guardarYEnviarRutina(3)" style="margin-top:6px;background:#000;border:2px solid var(--accent);color:var(--accent)">📤 Guardar y enviar rutina al alumno</button>
+          <div class="profe-saved" id="sugerencia-saved-3">✅ Indicación guardada</div>
+          <div class="profe-saved" id="rutina-enviada-3" style="color:var(--info)">✅ Rutina guardada en Sheets</div>
+          <div id="link-alumno-3" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+      <div class="ejercicio-list" id="ejercicio-list-3"></div>
+      <button class="add-ejercicio" onclick="addEjercicio('3')">+ Agregar ejercicio</button>
+    </div>
+    <div class="rutina-skipped" id="rutina-3-skipped"><div style="font-size:32px;margin-bottom:8px">⏭️</div>Esta rutina no fue realizada hoy.</div>
+  </div>
+
+  <!-- PASO 5: Logros -->
+  <div class="step" id="step-5">
+    <div class="step-label">Paso 5</div>
+    <div class="step-title">Logros del día</div>
+    <div class="step-sub">Anotá tus logros en la rutina de hoy. Puede ser algo pequeño.</div>
+    <div class="field-group">
+      <label class="field-label">⭐ ¿Qué lograste hoy?</label>
+      <textarea id="logro-texto" placeholder="Ej: Mantuve la técnica, superé mi marca en sentadilla, llegué aunque no tenía ganas..."></textarea>
+    </div>
+    <div class="field-group">
+      <label class="field-label">💬 Comentario o sugerencia para tu profe</label>
+      <textarea id="comentario-texto" placeholder="Algo que quieras contarle o sugerirle a tu profe..."></textarea>
+    </div>
+  </div>
+
+  <div class="nav-btns">
+    <button class="btn-back" id="btn-back" onclick="prevStep()" style="display:none">← Atrás</button>
+    <button class="btn-next" id="btn-next" onclick="nextStep()">Continuar →</button>
+  </div>
+</div>
+
+<!-- DONE -->
+<div class="done-screen" id="done-screen">
+  <div class="done-icon">💪</div>
+  <div class="done-title">¡Sesión registrada!</div>
+  <div class="done-sub">Tu profe puede ver tu progreso. Cada sesión que anotás es un paso más adelante.</div>
+  <div class="done-summary" id="done-summary"></div>
+  <button class="btn-nueva" onclick="resetForm()">Registrar otra sesión</button>
+
+  <!-- SECCIÓN PROFE -->
+  <div id="profe-section" style="margin-top:16px">
+    <div id="profe-toggle" onclick="mostrarProfe()" style="cursor:pointer;padding:12px;border:1px dashed var(--border);border-radius:var(--radius);color:var(--text-muted);font-size:13px;text-align:center;">
+      🔒 Soy el profe — dejar comentario
+    </div>
+    <div id="profe-login" style="display:none;margin-top:12px">
+      <input type="password" id="profe-pass" placeholder="Contraseña del profe" style="width:100%;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:DM Sans,sans-serif;font-size:15px;padding:13px 15px;outline:none;margin-bottom:10px;">
+      <button onclick="verificarProfe()" style="width:100%;padding:13px;border-radius:var(--radius);border:none;background:var(--accent);color:#000;font-family:DM Sans,sans-serif;font-size:15px;font-weight:600;cursor:pointer;">Ingresar</button>
+      <div id="profe-error" style="display:none;color:var(--danger);font-size:13px;text-align:center;margin-top:8px">Contraseña incorrecta</div>
+    </div>
+    <div id="profe-panel" style="display:none;margin-top:12px">
+      <div style="background:rgba(200,240,74,0.08);border:1px solid rgba(200,240,74,0.3);border-radius:var(--radius);padding:14px;margin-bottom:12px">
+        <div style="font-family:DM Mono,monospace;font-size:10px;color:var(--accent);letter-spacing:2px;margin-bottom:6px">PANEL PROFE</div>
+        <div style="font-size:13px;color:var(--text-muted)">Dejá tu comentario o sugerencia para el alumno.</div>
+      </div>
+      <textarea id="profe-comentario" placeholder="Ej: Muy bien esta semana, subí el peso en press. La próxima sesión enfocate en la técnica del peso muerto..." style="width:100%;background:var(--surface);border:2px solid rgba(200,240,74,0.4);border-radius:var(--radius);color:var(--text);font-family:DM Sans,sans-serif;font-size:15px;padding:13px 15px;outline:none;resize:none;min-height:100px;line-height:1.6;margin-bottom:10px;"></textarea>
+      <button onclick="guardarComentarioProfe()" style="width:100%;padding:13px;border-radius:var(--radius);border:none;background:var(--accent);color:#000;font-family:DM Sans,sans-serif;font-size:15px;font-weight:600;cursor:pointer;">Guardar comentario ✓</button>
+      <div id="profe-ok" style="display:none;text-align:center;margin-top:12px;color:var(--accent);font-size:14px">✅ Comentario guardado</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby7722GmuOPL4oOXM6AENspcZuwlDQusYSf55LJ-pldl8FkJszwPp2fUtGSR-UgZ6cFZA/exec';
+const totalSteps = 5;
+let currentStep = 1;
+let ejCount = { '1':0, '2':0, '3':0 };
+const data = {
+  nombre:'', fecha:'', energia:null, dolor:null, dolorDetalle:'', animo:null,
+  rutinas: { '1':{skip:false,ejercicios:[]}, '2':{skip:false,ejercicios:[]}, '3':{skip:false,ejercicios:[]} },
+  logro:'', comentario:''
+};
+
+document.getElementById('fecha-input').valueAsDate = new Date();
+
+// Leer nombre del alumno desde URL si viene con ?alumno=...
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const alumnoParam = params.get('alumno');
+  if (alumnoParam) {
+    document.getElementById('nombre-input').value = alumnoParam;
+    // Cargar rutina automaticamente
+    setTimeout(() => seleccionarAlumno(alumnoParam), 1000);
+  }
+})();
+const stepTitles = ['Datos del día','Rutina 1','Rutina 2','Rutina 3','Logros del día'];
+
+function updateHeader() {
+  document.getElementById('step-counter').textContent = currentStep + ' / ' + totalSteps;
+  document.getElementById('progress-fill').style.width = (currentStep/totalSteps*100) + '%';
+  document.getElementById('header-title').textContent = stepTitles[currentStep-1];
+  document.getElementById('btn-back').style.display = currentStep > 1 ? 'block' : 'none';
+  document.getElementById('btn-next').textContent = currentStep === totalSteps ? 'Guardar sesión ✓' : 'Continuar →';
+}
+
+function nextStep() {
+  if (currentStep < totalSteps) {
+    document.getElementById('step-'+currentStep).classList.remove('active');
+    currentStep++;
+    document.getElementById('step-'+currentStep).classList.add('active');
+    updateHeader(); window.scrollTo(0,0);
+  } else { finishForm(); }
+}
+
+function prevStep() {
+  if (currentStep > 1) {
+    document.getElementById('step-'+currentStep).classList.remove('active');
+    currentStep--;
+    document.getElementById('step-'+currentStep).classList.add('active');
+    updateHeader(); window.scrollTo(0,0);
+  }
+}
+
+function selectEnergy(el, value) {
+  el.closest('.energy-scale').querySelectorAll('.energy-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected'); data.energia = value;
+}
+function selectAnimo(el, value) {
+  el.closest('.energy-scale').querySelectorAll('.energy-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected'); data.animo = value;
+}
+function selectDolor(hasDolor) {
+  data.dolor = hasDolor;
+  document.getElementById('btn-dolor-si').className = 'toggle-btn' + (hasDolor ? ' selected-yes' : '');
+  document.getElementById('btn-dolor-no').className = 'toggle-btn' + (!hasDolor ? ' selected-no' : '');
+  hasDolor ? document.getElementById('dolor-detalle').classList.add('visible') : document.getElementById('dolor-detalle').classList.remove('visible');
+}
+function toggleSkip(r) {
+  const skip = document.getElementById('skip-rutina-'+r).checked;
+  data.rutinas[String(r)].skip = skip;
+  document.getElementById('rutina-'+r+'-content').style.display = skip ? 'none' : 'block';
+  skip ? document.getElementById('rutina-'+r+'-skipped').classList.add('visible') : document.getElementById('rutina-'+r+'-skipped').classList.remove('visible');
+}
+function addEjercicio(r) {
+  r = String(r);
+  ejCount[r]++;
+  const id = r+'-'+ejCount[r];
+  const list = document.getElementById('ejercicio-list-'+r);
+  const div = document.createElement('div');
+  div.className = 'ejercicio-item';
+  div.innerHTML = '<input type="text" class="ejercicio-nombre-input" placeholder="Nombre del ejercicio" oninput="updateEjNombre(\''+r+'\',\''+id+'\',this.value)">' +
+    '<div class="ejercicio-fields">' +
+    '<div class="mini-field"><label>SERIES</label><input type="text" placeholder="3" oninput="updateEjField(\''+r+'\',\''+id+'\',\'series\',this.value)"></div>' +
+    '<div class="mini-field"><label>REPS</label><input type="text" placeholder="10" oninput="updateEjField(\''+r+'\',\''+id+'\',\'reps\',this.value)"></div>' +
+    '<div class="mini-field"><label>KG</label><input type="text" placeholder="20" oninput="updateEjField(\''+r+'\',\''+id+'\',\'kg\',this.value)"></div>' +
+    '</div>' +
+    '<div class="mod-row"><input type="checkbox" class="mod-check" id="mod-'+id+'" onchange="toggleMod(\''+r+'\',\''+id+'\')"><label class="mod-label" for="mod-'+id+'">⚠️ Modifiqué este ejercicio</label></div>' +
+    '<div class="mod-nota" id="mod-nota-'+id+'"><input type="text" placeholder="¿Por qué lo modificaste?" oninput="updateEjField(\''+r+'\',\''+id+'\',\'modNota\',this.value)"></div>';
+  list.appendChild(div);
+  data.rutinas[String(r)].ejercicios.push({id, nombre:'', series:'', reps:'', kg:'', modificado:false, modNota:''});
+  div.querySelector('.ejercicio-nombre-input').focus();
+}
+function toggleMod(r, id) {
+  const checked = document.getElementById('mod-'+id).checked;
+  checked ? document.getElementById('mod-nota-'+id).classList.add('visible') : document.getElementById('mod-nota-'+id).classList.remove('visible');
+  const ej = data.rutinas[r].ejercicios.find(e => e.id === id);
+  if (ej) ej.modificado = checked;
+}
+function updateEjNombre(r, id, val) { const ej = data.rutinas[String(r)].ejercicios.find(e=>e.id===id); if(ej) ej.nombre=val; }
+function updateEjField(r, id, field, val) { const ej = data.rutinas[String(r)].ejercicios.find(e=>e.id===id); if(ej) ej[field]=val; }
+
+function formatRutina(r, label) {
+  const ru = data.rutinas[String(r)];
+  if (!ru) return label+': Sin datos';
+  if (ru.skip) return label+': No realizada';
+  const ejs = ru.ejercicios.filter(e=>e.nombre);
+  if (!ejs.length) return label+': Sin ejercicios';
+  return label+': '+ejs.map(e=>{
+    let s = e.nombre;
+    if(e.series) s += ' '+e.series+'x'+e.reps;
+    if(e.kg) s += ' '+e.kg+'kg';
+    if(e.modificado) s += ' [MOD: '+(e.modNota||'sin nota')+']';
+    return s;
+  }).join(' | ');
+}
+function hayMod() {
+  for (const r of ['1','2','3']) { if(data.rutinas[String(r)].ejercicios.some(e=>e.modificado)) return 'Sí'; }
+  return 'No';
+}
+
+async function finishForm() {
+  data.nombre = document.getElementById('nombre-input').value;
+  lastNombre = data.nombre;
+  lastFecha = document.getElementById('fecha-input').value;
+  data.dolorDetalle = document.getElementById('dolor-texto').value;
+  data.logro = document.getElementById('logro-texto').value;
+  data.comentario = document.getElementById('comentario-texto').value;
+  data.fecha = document.getElementById('fecha-input').value;
+  let fd = data.fecha;
+  if(fd){ const [y,m,d]=fd.split('-'); fd=d+'/'+m+'/'+y; }
+  const eL = {1:'😴 Bajo',2:'😐 Medio',3:'🔥 Óptimo'};
+  const aL = {bajo:'😞 Bajo',normal:'😊 Bien',excelente:'🌟 Top'};
+  const mod = hayMod();
+
+  document.getElementById('form-container').style.display = 'none';
+  document.getElementById('done-screen').classList.add('active');
+  document.getElementById('done-summary').innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted)">Guardando sesión... ⏳</div>';
+  window.scrollTo(0,0);
+
+  const params = new URLSearchParams({
+    nombre: data.nombre, fecha: fd,
+    energia: eL[data.energia]||'', dolor: data.dolor===true?'Sí':'No',
+    dolorDetalle: data.dolorDetalle||'', animo: aL[data.animo]||'',
+    rutina1: formatRutina('a','Rutina 1'),
+    rutina2: formatRutina('b','Rutina 2'),
+    rutina3: formatRutina('c','Rutina 3'),
+    modificaciones: mod, logro: data.logro, comentario: data.comentario
+  });
+  try { await fetch(SCRIPT_URL+'?'+params.toString(), {method:'GET',mode:'no-cors'}); } catch(e) {}
+
+  document.getElementById('done-summary').innerHTML =
+    '<div class="summary-row"><span class="summary-key">👤 Alumno</span><span class="summary-val">'+(data.nombre||'—')+'</span></div>'+
+    '<div class="summary-row"><span class="summary-key">📅 Fecha</span><span class="summary-val">'+(fd||'—')+'</span></div>'+
+    '<div class="summary-row"><span class="summary-key">⚡ Energía</span><span class="summary-val">'+(eL[data.energia]||'—')+'</span></div>'+
+    '<div class="summary-row"><span class="summary-key">😊 Ánimo</span><span class="summary-val">'+(aL[data.animo]||'—')+'</span></div>'+
+    '<div class="summary-row"><span class="summary-key">😬 Dolor</span><span class="summary-val">'+(data.dolor===true?'Sí'+(data.dolorDetalle?': '+data.dolorDetalle:''):'No')+'</span></div>'+
+    '<div class="summary-row"><span class="summary-key">🏋️ Rutina 1</span><span class="summary-val">'+(data.rutinas['1'].skip?'No realizada':data.rutinas['1'].ejercicios.filter(e=>e.nombre).length+' ejercicios')+'</span></div>'+
+    '<div class="summary-row"><span class="summary-key">🏋️ Rutina 2</span><span class="summary-val">'+(data.rutinas['2'].skip?'No realizada':data.rutinas['2'].ejercicios.filter(e=>e.nombre).length+' ejercicios')+'</span></div>'+
+    '<div class="summary-row"><span class="summary-key">🏋️ Rutina 3</span><span class="summary-val">'+(data.rutinas['3'].skip?'No realizada':data.rutinas['3'].ejercicios.filter(e=>e.nombre).length+' ejercicios')+'</span></div>'+
+    (mod==='Sí'?'<div class="summary-row"><span class="summary-key">⚠️ Modificaciones</span><span class="summary-val" style="color:var(--warn)">Sí — tu profe lo verá</span></div>':'')+
+    '<div class="summary-row"><span class="summary-key">⭐ Logro</span><span class="summary-val">'+(data.logro||'—')+'</span></div>'+
+    (data.comentario?'<div class="summary-row"><span class="summary-key">💬 Comentario</span><span class="summary-val" style="color:var(--accent2, #7dd3fc)">'+(data.comentario)+'</span></div>':'');
+}
+
+function resetForm() {
+  document.getElementById('form-container').style.display='block';
+  document.getElementById('done-screen').classList.remove('active');
+  currentStep=1;
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('step-1').classList.add('active');
+  document.querySelectorAll('.energy-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('btn-dolor-si').className='toggle-btn';
+  document.getElementById('btn-dolor-no').className='toggle-btn';
+  document.getElementById('dolor-detalle').classList.remove('visible');
+  document.getElementById('dolor-texto').value='';
+  document.getElementById('nombre-input').value='';
+  document.getElementById('logro-texto').value='';
+  document.getElementById('comentario-texto').value='';
+  document.getElementById('fecha-input').valueAsDate=new Date();
+  ['1','2','3'].forEach(r=>{
+    document.getElementById('ejercicio-list-'+r).innerHTML='';
+    document.getElementById('skip-rutina-'+r).checked=false;
+    document.getElementById('rutina-'+r+'-content').style.display='block';
+    document.getElementById('rutina-'+r+'-skipped').classList.remove('visible');
+    data.rutinas[String(r)]={skip:false,ejercicios:[]}; ejCount[String(r)]=0;
+  });
+  Object.assign(data,{nombre:'',fecha:'',energia:null,dolor:null,dolorDetalle:'',animo:null,logro:'', comentario:''});
+  updateHeader(); window.scrollTo(0,0);
+}
+const PROFE_PASS = 'profe123';
+let lastNombre = '';
+let lastFecha = '';
+
+function mostrarProfe() {
+  document.getElementById('profe-toggle').style.display = 'none';
+  document.getElementById('profe-login').style.display = 'block';
+}
+
+function verificarProfe() {
+  const pass = document.getElementById('profe-pass').value;
+  if (pass === PROFE_PASS) {
+    document.getElementById('profe-login').style.display = 'none';
+    document.getElementById('profe-panel').style.display = 'block';
+    document.getElementById('profe-error').style.display = 'none';
+  } else {
+    document.getElementById('profe-error').style.display = 'block';
+  }
+}
+
+async function guardarComentarioProfe() {
+  const comentario = document.getElementById('profe-comentario').value;
+  if (!comentario.trim()) return;
+  const params = new URLSearchParams({
+    nombre: lastNombre,
+    fecha: lastFecha,
+    comentarioProfe: comentario,
+    esComentarioProfe: 'si'
+  });
+  try { await fetch(SCRIPT_URL + '?' + params.toString(), {method:'GET', mode:'no-cors'}); } catch(e) {}
+  document.getElementById('profe-ok').style.display = 'block';
+  document.getElementById('profe-comentario').value = '';
+}
+
+async function guardarYEnviarRutina(n) {
+  const alumno = document.getElementById('sugerencia-alumno-'+n).value.trim();
+  const indicacion = document.getElementById('sugerencia-texto-'+n).value.trim();
+  if (!alumno) { alert('Escribí el nombre del alumno o grupo'); return; }
+
+  // Recopilar ejercicios cargados por el profe en esta rutina
+  const ejercicios = (data.rutinas[String(n)] ? data.rutinas[String(n)].ejercicios : [])
+    .filter(e => e.nombre)
+    .map(e => e.nombre + '|' + (e.series||'') + '|' + (e.reps||'') + '|' + (e.kg||''))
+    .join(';;');
+
+  const params = new URLSearchParams({
+    accion: 'rutina',
+    rutinaNro: n,
+    alumno: alumno,
+    contenido: indicacion,
+    ejercicios: ejercicios,
+    fecha: new Date().toLocaleDateString('es-AR')
+  });
+
+  try {
+    await fetch(SCRIPT_URL + '?' + params.toString(), { method: 'GET', mode: 'no-cors' });
+  } catch(e) {}
+
+  document.getElementById('rutina-enviada-'+n).style.display = 'block';
+  mostrarLinkAlumno(n, alumno);
+}
+
+function mostrarLinkAlumno(n, alumno) {
+  const linkDiv = document.getElementById('link-alumno-'+n);
+  const linkUrl = window.location.origin + window.location.pathname + '?alumno=' + encodeURIComponent(alumno);
+  
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'margin-top:10px;background:rgba(200,240,74,0.08);border:1px solid rgba(200,240,74,0.3);border-radius:10px;padding:12px';
+  
+  const titulo = document.createElement('div');
+  titulo.style.cssText = 'font-size:11px;color:var(--text-muted);margin-bottom:6px;font-family:DM Mono,monospace;letter-spacing:1px';
+  titulo.textContent = 'LINK PARA ' + alumno.toUpperCase();
+  wrapper.appendChild(titulo);
+  
+  const urlDiv = document.createElement('div');
+  urlDiv.style.cssText = 'font-size:12px;color:var(--accent);word-break:break-all;margin-bottom:8px';
+  urlDiv.textContent = linkUrl;
+  wrapper.appendChild(urlDiv);
+  
+  const btnCopiar = document.createElement('button');
+  btnCopiar.style.cssText = 'width:100%;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#000;font-family:DM Sans,sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:block;margin-bottom:6px';
+  btnCopiar.textContent = '📲 Copiar link para ' + alumno;
+  btnCopiar.onclick = function() { copiarLink(linkUrl, alumno); };
+  wrapper.appendChild(btnCopiar);
+  
+  const btnWa = document.createElement('button');
+  btnWa.style.cssText = 'width:100%;padding:10px;border-radius:8px;border:1px solid #25D366;background:transparent;color:#25D366;font-family:DM Sans,sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:block';
+  btnWa.textContent = '💬 Enviar por WhatsApp';
+  btnWa.onclick = function() { whatsappLink(linkUrl, alumno); };
+  wrapper.appendChild(btnWa);
+  
+  linkDiv.innerHTML = '';
+  linkDiv.appendChild(wrapper);
+  linkDiv.style.display = 'block';
+}
+
+function copiarLink(url, alumno) {
+  navigator.clipboard.writeText(url).then(function() {
+    alert('Link copiado para ' + alumno);
+  }).catch(function() {
+    prompt('Copiá este link:', url);
+  });
+}
+
+function whatsappLink(url, alumno) {
+  var texto = 'Hola ' + alumno + '! Tu rutina esta lista. Entra aca para verla y registrar tu sesion: ' + url;
+  window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank');
+}
+
+// AUTOCOMPLETE Y CARGA DE RUTINAS
+let alumnosDisponibles = [];
+
+async function cargarListaAlumnos() {
+  try {
+    const url = SCRIPT_URL + '?action=getAlumnos';
+    const proxy = 'https://corsproxy.io/?' + encodeURIComponent(url);
+    const res = await fetch(proxy);
+    const data = await res.json();
+    alumnosDisponibles = Array.isArray(data) ? data : JSON.parse(data);
+  } catch(e) { alumnosDisponibles = []; }
+}
+
+function buscarAlumno(valor) {
+  const list = document.getElementById('autocomplete-list');
+  if (!valor || valor.length < 2) { list.style.display = 'none'; return; }
+  const matches = alumnosDisponibles.filter(a => a.toLowerCase().includes(valor.toLowerCase()));
+  if (!matches.length) { list.style.display = 'none'; return; }
+  list.style.display = 'block';
+  list.innerHTML = matches.map(a => `
+    <div onclick="seleccionarAlumno('${a}')" style="padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);transition:background 0.1s;" 
+      onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+      👤 ${a}
+    </div>
+  `).join('');
+}
+
+async function seleccionarAlumno(nombre) {
+  document.getElementById('nombre-input').value = nombre;
+  document.getElementById('autocomplete-list').style.display = 'none';
+  
+  // Cargar rutina via proxy
+  try {
+    const url = SCRIPT_URL + '?action=getRutina&nombre=' + encodeURIComponent(nombre);
+    const proxy = 'https://corsproxy.io/?' + encodeURIComponent(url);
+    const res = await fetch(proxy);
+    const text = await res.text();
+    const rutinas = typeof text === 'string' ? JSON.parse(text) : text;
+    let cargadas = 0;
+    ['1','2','3'].forEach(n => {
+      const key = 'rutina' + n;
+      const keyEj = 'ejercicios' + n;
+      if (rutinas[key]) {
+        sugerencias[n] = rutinas[key];
+        document.getElementById('sugerencia-display-'+n).innerHTML = rutinas[key];
+        cargadas++;
+      }
+      if (rutinas[keyEj]) {
+        precargarEjercicios(n, rutinas[keyEj]);
+      }
+    });
+    if (cargadas > 0) {
+      document.getElementById('rutina-cargada-msg').style.display = 'block';
+      setTimeout(() => document.getElementById('rutina-cargada-msg').style.display = 'none', 3000);
+    }
+  } catch(e) {}
+}
+
+// Cargar lista al inicio
+cargarListaAlumnos().then(() => console.log('Alumnos cargados:', alumnosDisponibles.length));
+
+function precargarEjercicios(n, ejData) {
+  if (!ejData) return;
+  const list = document.getElementById('ejercicio-list-'+n);
+  list.innerHTML = '';
+  data.rutinas[String(n)].ejercicios = [];
+  ejCount[String(n)] = 0;
+  ejData.split(';;').forEach(function(ejStr) {
+    if (!ejStr.trim()) return;
+    const parts = ejStr.split('|');
+    const nombre = parts[0] || '';
+    const series = parts[1] || '';
+    const reps = parts[2] || '';
+    const kg = parts[3] || '';
+    ejCount[String(n)]++;
+    const id = String(n) + '-' + ejCount[String(n)];
+    const div = document.createElement('div');
+    div.className = 'ejercicio-item';
+    
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'ejercicio-nombre-input';
+    nameInput.value = nombre;
+    nameInput.placeholder = 'Nombre del ejercicio';
+    nameInput.setAttribute('oninput', "updateEjNombre('" + n + "','" + id + "',this.value)");
+    div.appendChild(nameInput);
+    
+    const fields = document.createElement('div');
+    fields.className = 'ejercicio-fields';
+    
+    [['SERIES', series, 'series'], ['REPS', reps, 'reps'], ['KG', kg, 'kg']].forEach(function(f) {
+      const mf = document.createElement('div');
+      mf.className = 'mini-field';
+      const lbl = document.createElement('label');
+      lbl.textContent = f[0];
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.value = f[1];
+      inp.placeholder = f[0] === 'SERIES' ? '3' : f[0] === 'REPS' ? '10' : '20';
+      inp.setAttribute('oninput', "updateEjField('" + n + "','" + id + "','" + f[2] + "',this.value)");
+      mf.appendChild(lbl);
+      mf.appendChild(inp);
+      fields.appendChild(mf);
+    });
+    div.appendChild(fields);
+    
+    const modRow = document.createElement('div');
+    modRow.className = 'mod-row';
+    const chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.className = 'mod-check';
+    chk.id = 'mod-' + id;
+    chk.setAttribute('onchange', "toggleMod('" + n + "','" + id + "')");
+    const lbl = document.createElement('label');
+    lbl.className = 'mod-label';
+    lbl.setAttribute('for', 'mod-' + id);
+    lbl.textContent = '⚠️ Modifiqué este ejercicio';
+    modRow.appendChild(chk);
+    modRow.appendChild(lbl);
+    div.appendChild(modRow);
+    
+    const modNota = document.createElement('div');
+    modNota.className = 'mod-nota';
+    modNota.id = 'mod-nota-' + id;
+    const notaInp = document.createElement('input');
+    notaInp.type = 'text';
+    notaInp.placeholder = '¿Por qué lo modificaste?';
+    notaInp.setAttribute('oninput', "updateEjField('" + n + "','" + id + "','modNota',this.value)");
+    modNota.appendChild(notaInp);
+    div.appendChild(modNota);
+    
+    list.appendChild(div);
+    data.rutinas[String(n)].ejercicios.push({id:id, nombre:nombre, series:series, reps:reps, kg:kg, modificado:false, modNota:''});
+  });
+}
+
+const PROFE_PASSWORD = 'profe123';
+const sugerencias = { '1': '', '2': '', '3': '' };
+
+function toggleSugerenciaInput(n) {
+  const inp = document.getElementById('sugerencia-input-'+n);
+  inp.classList.toggle('visible');
+}
+
+function verificarSugerencia(n) {
+  const pass = document.getElementById('sugerencia-pass-'+n).value;
+  if (pass === PROFE_PASSWORD) {
+    document.getElementById('sugerencia-error-'+n).style.display = 'none';
+    document.getElementById('sugerencia-wrap-'+n).classList.add('visible');
+    document.getElementById('sugerencia-texto-'+n).value = sugerencias[String(n)];
+  } else {
+    document.getElementById('sugerencia-error-'+n).style.display = 'block';
+  }
+}
+
+function guardarSugerencia(n) {
+  const texto = document.getElementById('sugerencia-texto-'+n).value.trim();
+  sugerencias[String(n)] = texto;
+  const display = document.getElementById('sugerencia-display-'+n);
+  display.innerHTML = texto ? texto : '<span class="sugerencia-vacia">Sin indicaciones cargadas aún.</span>';
+  document.getElementById('sugerencia-saved-'+n).style.display = 'block';
+  setTimeout(() => {
+    document.getElementById('sugerencia-input-'+n).classList.remove('visible');
+    document.getElementById('sugerencia-saved-'+n).style.display = 'none';
+    document.getElementById('sugerencia-wrap-'+n).classList.remove('visible');
+    document.getElementById('sugerencia-pass-'+n).value = '';
+  }, 1500);
+}
+</script>
+</body>
+</html>
