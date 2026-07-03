@@ -517,9 +517,9 @@ async function finishForm() {
     nombre: data.nombre, fecha: fd,
     energia: eL[data.energia]||'', dolor: data.dolor===true?'Sí':'No',
     dolorDetalle: data.dolorDetalle||'', animo: aL[data.animo]||'',
-    rutina1: formatRutina('a','Rutina 1'),
-    rutina2: formatRutina('b','Rutina 2'),
-    rutina3: formatRutina('c','Rutina 3'),
+    rutina1: formatRutina('1','Rutina 1'),
+    rutina2: formatRutina('2','Rutina 2'),
+    rutina3: formatRutina('3','Rutina 3'),
     modificaciones: mod, logro: data.logro, comentario: data.comentario
   });
   try { await fetch(SCRIPT_URL+'?'+params.toString(), {method:'GET',mode:'no-cors'}); } catch(e) {}
