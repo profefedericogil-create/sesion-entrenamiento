@@ -205,11 +205,28 @@ textarea { resize: none; min-height: 90px; line-height: 1.6; }
       </div>
     </div>
     <div class="field-group">
-      <label class="field-label">😊 ¿Cómo fue tu ánimo?</label>
+      <label class="field-label">😴 ¿Cómo dormiste?</label>
       <div class="energy-scale">
-        <div class="energy-btn" onclick="selectAnimo(this,'bajo')"><span class="energy-emoji">😞</span><span class="energy-label">BAJO</span></div>
-        <div class="energy-btn" onclick="selectAnimo(this,'normal')"><span class="energy-emoji">😊</span><span class="energy-label">BIEN</span></div>
-        <div class="energy-btn" onclick="selectAnimo(this,'excelente')"><span class="energy-emoji">🌟</span><span class="energy-label">TOP</span></div>
+        <div class="energy-btn" onclick="selectSueno(this,'mal')"><span class="energy-emoji">😫</span><span class="energy-label">MAL</span></div>
+        <div class="energy-btn" onclick="selectSueno(this,'regular')"><span class="energy-emoji">😐</span><span class="energy-label">REGULAR</span></div>
+        <div class="energy-btn" onclick="selectSueno(this,'bien')"><span class="energy-emoji">😴✨</span><span class="energy-label">BIEN</span></div>
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">💧 ¿Venís bien hidratado?</label>
+      <div class="toggle-row">
+        <div class="toggle-btn" id="btn-hidra-si" onclick="selectHidra(true)">Sí</div>
+        <div class="toggle-btn" id="btn-hidra-no" onclick="selectHidra(false)">No</div>
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">🏃 ¿Hiciste actividad física en las últimas 48hs?</label>
+      <div class="toggle-row">
+        <div class="toggle-btn" id="btn-act-si" onclick="selectActividad(true)">Sí</div>
+        <div class="toggle-btn" id="btn-act-no" onclick="selectActividad(false)">No</div>
+      </div>
+      <div class="dolor-input" id="actividad-detalle">
+        <input type="text" placeholder="¿Qué deporte o actividad?" id="actividad-texto">
       </div>
     </div>
   </div>
@@ -377,12 +394,12 @@ textarea { resize: none; min-height: 90px; line-height: 1.6; }
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby1OPdKAHfG-TiedMTs6-WR2LT4x-2vJgAXrti5uMTwpY6VE1Q6FeGbaXgkvSIZkrU2iA/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbylC2hSQy981TqrvGATWdpMqAniRAqQexY9x2oI1K8I7yirB4LjVbW2K3HR6V5wAaABsw/exec';
 const totalSteps = 5;
 let currentStep = 1;
 let ejCount = { '1':0, '2':0, '3':0 };
 const data = {
-  nombre:'', fecha:'', energia:null, dolor:null, dolorDetalle:'', animo:null,
+  nombre:'', fecha:'', energia:null, dolor:null, dolorDetalle:'', sueno:null, hidra:null, actividad:null, actividadDetalle:'',
   rutinas: { '1':{skip:false,ejercicios:[]}, '2':{skip:false,ejercicios:[]}, '3':{skip:false,ejercicios:[]} },
   logro:'', comentario:''
 };
@@ -431,9 +448,20 @@ function selectEnergy(el, value) {
   el.closest('.energy-scale').querySelectorAll('.energy-btn').forEach(b => b.classList.remove('selected'));
   el.classList.add('selected'); data.energia = value;
 }
-function selectAnimo(el, value) {
+function selectSueno(el, value) {
   el.closest('.energy-scale').querySelectorAll('.energy-btn').forEach(b => b.classList.remove('selected'));
-  el.classList.add('selected'); data.animo = value;
+  el.classList.add('selected'); data.sueno = value;
+}
+function selectHidra(val) {
+  data.hidra = val;
+  document.getElementById('btn-hidra-si').className = 'toggle-btn' + (val ? ' selected-no' : '');
+  document.getElementById('btn-hidra-no').className = 'toggle-btn' + (!val ? ' selected-yes' : '');
+}
+function selectActividad(val) {
+  data.actividad = val;
+  document.getElementById('btn-act-si').className = 'toggle-btn' + (val ? ' selected-no' : '');
+  document.getElementById('btn-act-no').className = 'toggle-btn' + (!val ? ' selected-yes' : '');
+  val ? document.getElementById('actividad-detalle').classList.add('visible') : document.getElementById('actividad-detalle').classList.remove('visible');
 }
 function selectDolor(hasDolor) {
   data.dolor = hasDolor;
@@ -499,13 +527,14 @@ async function finishForm() {
   lastNombre = data.nombre;
   lastFecha = document.getElementById('fecha-input').value;
   data.dolorDetalle = document.getElementById('dolor-texto').value;
+  data.actividadDetalle = document.getElementById('actividad-texto').value;
   data.logro = document.getElementById('logro-texto').value;
   data.comentario = document.getElementById('comentario-texto').value;
   data.fecha = document.getElementById('fecha-input').value;
   let fd = data.fecha;
   if(fd){ const [y,m,d]=fd.split('-'); fd=d+'/'+m+'/'+y; }
   const eL = {1:'😴 Bajo',2:'😐 Medio',3:'🔥 Óptimo'};
-  const aL = {bajo:'😞 Bajo',normal:'😊 Bien',excelente:'🌟 Top'};
+  const sL = {mal:'😫 Mal',regular:'😐 Regular',bien:'😴✨ Bien'};
   const mod = hayMod();
 
   document.getElementById('form-container').style.display = 'none';
@@ -516,7 +545,11 @@ async function finishForm() {
   const params = new URLSearchParams({
     nombre: data.nombre, fecha: fd,
     energia: eL[data.energia]||'', dolor: data.dolor===true?'Sí':'No',
-    dolorDetalle: data.dolorDetalle||'', animo: aL[data.animo]||'',
+    dolorDetalle: data.dolorDetalle||'',
+    sueno: sL[data.sueno]||'',
+    hidra: data.hidra===true?'Sí':data.hidra===false?'No':'',
+    actividad: data.actividad===true?'Sí':data.actividad===false?'No':'',
+    actividadDetalle: data.actividadDetalle||'',
     rutina1: formatRutina('1','Rutina 1'),
     rutina2: formatRutina('2','Rutina 2'),
     rutina3: formatRutina('3','Rutina 3'),
@@ -528,7 +561,9 @@ async function finishForm() {
     '<div class="summary-row"><span class="summary-key">👤 Alumno</span><span class="summary-val">'+(data.nombre||'—')+'</span></div>'+
     '<div class="summary-row"><span class="summary-key">📅 Fecha</span><span class="summary-val">'+(fd||'—')+'</span></div>'+
     '<div class="summary-row"><span class="summary-key">⚡ Energía</span><span class="summary-val">'+(eL[data.energia]||'—')+'</span></div>'+
-    '<div class="summary-row"><span class="summary-key">😊 Ánimo</span><span class="summary-val">'+(aL[data.animo]||'—')+'</span></div>'+
+    '<div class="summary-row"><span class="summary-key">😴 Sueño</span><span class="summary-val">'+(sL[data.sueno]||'—')+'</span></div>'+
+    '<div class="summary-row"><span class="summary-key">💧 Hidratación</span><span class="summary-val">'+(data.hidra===true?'Sí':data.hidra===false?'No':'—')+'</span></div>'+
+    '<div class="summary-row"><span class="summary-key">🏃 Actividad 48hs</span><span class="summary-val">'+(data.actividad===true?'Sí'+(data.actividadDetalle?': '+data.actividadDetalle:''):data.actividad===false?'No':'—')+'</span></div>'+
     '<div class="summary-row"><span class="summary-key">😬 Dolor</span><span class="summary-val">'+(data.dolor===true?'Sí'+(data.dolorDetalle?': '+data.dolorDetalle:''):'No')+'</span></div>'+
     '<div class="summary-row"><span class="summary-key">🏋️ Rutina 1</span><span class="summary-val">'+(data.rutinas['1'].skip?'No realizada':data.rutinas['1'].ejercicios.filter(e=>e.nombre).length+' ejercicios')+'</span></div>'+
     '<div class="summary-row"><span class="summary-key">🏋️ Rutina 2</span><span class="summary-val">'+(data.rutinas['2'].skip?'No realizada':data.rutinas['2'].ejercicios.filter(e=>e.nombre).length+' ejercicios')+'</span></div>'+
@@ -560,7 +595,13 @@ function resetForm() {
     document.getElementById('rutina-'+r+'-skipped').classList.remove('visible');
     data.rutinas[String(r)]={skip:false,ejercicios:[]}; ejCount[String(r)]=0;
   });
-  Object.assign(data,{nombre:'',fecha:'',energia:null,dolor:null,dolorDetalle:'',animo:null,logro:'', comentario:''});
+  document.getElementById('btn-hidra-si').className='toggle-btn';
+  document.getElementById('btn-hidra-no').className='toggle-btn';
+  document.getElementById('btn-act-si').className='toggle-btn';
+  document.getElementById('btn-act-no').className='toggle-btn';
+  document.getElementById('actividad-detalle').classList.remove('visible');
+  document.getElementById('actividad-texto').value='';
+  Object.assign(data,{nombre:'',fecha:'',energia:null,dolor:null,dolorDetalle:'',sueno:null,hidra:null,actividad:null,actividadDetalle:'',logro:'',comentario:''});
   updateHeader(); window.scrollTo(0,0);
 }
 const PROFE_PASS = 'profe123';
